@@ -34,6 +34,8 @@ func transferWorkflow(ctx workflow.Context, transferRequest AccountTransferReque
 		},
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
+	logger := workflow.GetLogger(ctx)
+	logger.Info("transfer workflow started")
 
 	err := workflow.ExecuteActivity(ctx, "withdraw",
 		transferRequest.FromAccountId,
@@ -42,6 +44,7 @@ func transferWorkflow(ctx workflow.Context, transferRequest AccountTransferReque
 	if err != nil {
 		return err
 	}
+	logger.Info("withdrawal completed")
 
 	err = workflow.ExecuteActivity(ctx, "deposit",
 		transferRequest.ToAccountId,
@@ -50,6 +53,7 @@ func transferWorkflow(ctx workflow.Context, transferRequest AccountTransferReque
 	if err != nil {
 		return err
 	}
+	logger.Info("deposit completed")
 
 	return nil
 }
