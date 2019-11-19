@@ -1,0 +1,6 @@
+{
+    "FromAccountId": "A",
+    "ToAccountId": "B",
+    "ReferenceId": "XYZ",
+    "Amount": 100
+}
