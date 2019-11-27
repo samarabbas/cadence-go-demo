@@ -80,6 +80,17 @@ Initiate Transfer:
 cadence --do samples wf start --tl samples_workflow_tl --wt transfer --wid transferAToB-1 --dt 2 --et 1200 --wrp 1 --if ./transferRequest.json
 ```
 
+### Batch Transfer Sample
+
+Workflow Worker:
+```
+./bins/workflowWorker
+```
+Activities Worker:
+```
+./bins/activityWorker
+```
+
 Initiate Batch Transfer:
 ```
 cadence --do samples wf start --tl samples_workflow_tl --wt batch-transfer --wid batch-transfer-1 --dt 2 --et 1200 --wrp 1 --if ./batchTransferRequest.json
