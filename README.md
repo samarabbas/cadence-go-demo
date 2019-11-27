@@ -79,3 +79,44 @@ Initiate Transfer:
 ```
 cadence --do samples wf start --tl samples_workflow_tl --wt transfer --wid transferAToB-1 --dt 2 --et 1200 --wrp 1 --if ./transferRequest.json
 ```
+
+### Batch Transfer Sample
+
+Workflow Worker:
+```
+./bins/workflowWorker
+```
+Activities Worker:
+```
+./bins/activityWorker
+```
+
+Initiate Batch Transfer:
+```
+cadence --do samples wf start --tl samples_workflow_tl --wt batch-transfer --wid batch-transfer-1 --dt 2 --et 1200 --wrp 1 --if ./batchTransferRequest.json
+```
+
+Send Signal For First Withdrawal:
+```
+cadence --do samples wf signal -w batch-transfer-1 --name withdraw --if ./withdrawSignalPayload1.json
+```
+
+Send Signal For Second Withdrawal:
+```
+cadence --do samples wf signal -w batch-transfer-1 --name withdraw --if ./withdrawSignalPayload2.json
+```
+
+Send Signal For Third Withdrawal:
+```
+cadence --do samples wf signal -w batch-transfer-1 --name withdraw --if ./withdrawSignalPayload3.json
+```
+
+Query Withdrawal Count:
+```
+./cadence --do samples wf query -w batch-transfer-1 --qt get-count
+```
+
+Query Balance:
+```
+./cadence --do samples wf query -w batch-transfer-1 --qt get-balance
+```
