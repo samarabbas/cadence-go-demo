@@ -10,6 +10,7 @@ require (
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/prometheus/client_golang v1.2.1 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
+	github.com/stretchr/testify v1.4.0
 	github.com/uber-go/mapdecode v1.0.0 // indirect
 	github.com/uber-go/tally v3.3.13+incompatible
 	github.com/uber/tchannel-go v1.16.0 // indirect
