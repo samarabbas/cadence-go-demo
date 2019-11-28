@@ -55,7 +55,7 @@ func (s *batchState) transfer(ctx workflow.Context, request BatchTransferRequest
 	withdrawSignalCh := workflow.GetSignalChannel(ctx, "withdraw")
 
 	for s.count < request.BatchSize {
-			var withdrawSignal WithdrawSignal
+		var withdrawSignal WithdrawSignal
 		withdrawSignalCh.Receive(ctx, &withdrawSignal)
 		logger.Info("withdraw signal received", zap.String("FromAccountId", withdrawSignal.FromAccountId))
 		if _, ok := s.references[withdrawSignal.ReferenceId]; !ok {
