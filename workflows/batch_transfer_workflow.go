@@ -27,18 +27,68 @@ type (
 		BatchSize   int
 	}
 
-	BatchState struct {
-		references map[string]struct{}
+	batchState struct {
+		references map[string]struct{} // used for deduping signals
 		balance    int
 		count      int
 	}
 )
 
-func newBatchState() *BatchState {
-	state := &BatchState{}
+func newBatchState() *batchState {
+	state := &batchState{}
 	state.references = make(map[string]struct{})
 
 	return state
+}
+
+func (s *batchState) transfer(ctx workflow.Context, request BatchTransferRequest) error {
+	logger := workflow.GetLogger(ctx)
+
+	workflow.SetQueryHandler(ctx, "get-count", func() (int, error) {
+		return s.count, nil
+	})
+
+	workflow.SetQueryHandler(ctx, "get-balance", func() (int, error) {
+		return s.balance, nil
+	})
+
+	withdrawSignalCh := workflow.GetSignalChannel(ctx, "withdraw")
+
+	for s.count < request.BatchSize {
+		var withdrawSignal WithdrawSignal
+		withdrawSignalCh.Receive(ctx, &withdrawSignal)
+		logger.Info("withdraw signal received", zap.String("FromAccountId", withdrawSignal.FromAccountId))
+		if _, ok := s.references[withdrawSignal.ReferenceId]; !ok {
+			s.references[withdrawSignal.ReferenceId] = struct{}{}
+
+			err := workflow.ExecuteActivity(ctx, "withdraw",
+				withdrawSignal.FromAccountId,
+				withdrawSignal.ReferenceId,
+				withdrawSignal.Amount).Get(ctx, nil)
+
+			if err != nil {
+				return err
+			}
+
+			s.balance += withdrawSignal.Amount
+			s.count++
+		}
+	}
+
+	logger.Info("all withdrawals completed")
+
+	err := workflow.ExecuteActivity(ctx, "deposit",
+		request.ToAccountId,
+		request.ReferenceId,
+		s.balance).Get(ctx, nil)
+
+	if err != nil {
+		return err
+	}
+
+	logger.Info("deposit completed")
+
+	return nil
 }
 
 func batchTransferWorkflow(ctx workflow.Context, request BatchTransferRequest) error {
@@ -55,51 +105,7 @@ func batchTransferWorkflow(ctx workflow.Context, request BatchTransferRequest) e
 	ctx = workflow.WithActivityOptions(ctx, ao)
 	logger := workflow.GetLogger(ctx)
 	logger.Info("batch transfer workflow started")
+
 	state := newBatchState()
-
-	workflow.SetQueryHandler(ctx, "get-count", func() (int, error) {
-		return state.count, nil
-	})
-
-	workflow.SetQueryHandler(ctx, "get-balance", func() (int, error) {
-		return state.balance, nil
-	})
-
-	withdrawSignalCh := workflow.GetSignalChannel(ctx, "withdraw")
-
-	for state.count < request.BatchSize {
-		var withdrawSignal WithdrawSignal
-		withdrawSignalCh.Receive(ctx, &withdrawSignal)
-		logger.Info("withdraw signal received", zap.String("FromAccountId", withdrawSignal.FromAccountId))
-		if _, ok := state.references[withdrawSignal.ReferenceId]; !ok {
-			state.references[withdrawSignal.ReferenceId] = struct{}{}
-
-			err := workflow.ExecuteActivity(ctx, "withdraw",
-				withdrawSignal.FromAccountId,
-				withdrawSignal.ReferenceId,
-				withdrawSignal.Amount).Get(ctx, nil)
-
-			if err != nil {
-				return err
-			}
-
-			state.balance += withdrawSignal.Amount
-			state.count++
-		}
-	}
-
-	logger.Info("all withdrawals completed")
-
-	err := workflow.ExecuteActivity(ctx, "deposit",
-		request.ToAccountId,
-		request.ReferenceId,
-		state.balance).Get(ctx, nil)
-
-	if err != nil {
-		return err
-	}
-
-	logger.Info("deposit completed")
-
-	return nil
+	return state.transfer(ctx, request)
 }
